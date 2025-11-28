@@ -1,32 +1,27 @@
 import math as m
 from math import prod
 from function.primitive_sets import p5, p6, p7, p8, p9, p10
+import time
+
 
 def generate_P_set(n):
     return [chr(ord('a') + i) for i in range(n)]
 
+
 def lcm(x, y):
     return (x * y) // m.gcd(x, y)
 
+
 def partition(N):
-    """
-    input: Natural number
-    output: the list of all pairs (x,y) with 1 <= y <= x <= N-1 and x+y <= N
-    ------------------------------------
-    Ex: partition(4)
-    output: [(1,1), (2,1), (2,2), (3,1)]
-    """
     result = [(x, y) for x in range(1, N) for y in range(1, x + 1) if x + y <= N]
     return result
+
 
 def create_cor(P_set):
     return {p: 1 for p in P_set}
 
+
 def prime_factor(N):
-    """
-    input: Natural number
-    output: the list of prime factor of input
-    """
     factors = set()
     d = 2
     while d * d <= N:
@@ -39,21 +34,8 @@ def prime_factor(N):
         factors.add(N)
     return sorted(factors)
 
+
 def all_first_pairing(P_set):
-    """
-    input: A list of symbols of prime
-    output: A list of all distinct divisibility patterns of the initial pair (a,b)), classified only by counts of primes dividing a and b
-    ------------------------------------
-    Ex: first_pairing(['a', 'b', 'c', 'd'])
-    output: 
-    [{(1, 0): ['a'], (0, 1): ['b']},
-    {(1, 0): ['a', 'b'], (0, 1): ['c']},
-    {(1, 0): ['a', 'b'], (0, 1): ['c', 'd']},
-    {(1, 0): ['a', 'b', 'c'], (0, 1): ['d']}]
-    ------------------------------------
-    Explanation:
-    (A,B) represents Aa+Bb where a,b are symbols.
-    """
     n = len(P_set)
     prime_num_pair = partition(n)
     result = []
@@ -66,10 +48,8 @@ def all_first_pairing(P_set):
 
     return result
 
+
 def divide_check(P_set, cor, pairing, path):
-    """
-    Explanation: Determine if the new element is divisible by its assigned prime.
-    """
     result = []
     last_path = path[-1]
     new_element = tuple(a + b for a, b in zip(last_path[0], last_path[1]))
@@ -106,10 +86,8 @@ def divide_check(P_set, cor, pairing, path):
 
     return divide_check, result
 
+
 def assign_prime(P_set, cor, pairing, path):
-    """
-    Explanation: Assign new prime.
-    """
     result = []
     last_path = path[-1]
     new_element = tuple(a + b for a, b in zip(last_path[0], last_path[1]))
@@ -161,21 +139,8 @@ def assign_prime(P_set, cor, pairing, path):
 
     return result
 
+
 def create_new_path(P_set, cor, pairing, path):
-    """
-    input: P_set: a list of symbols of prime, cor: correspondence between primes and the element of P_set, pairing: correspondence between Aa+Bb((A,B)) and elements of P_set, path: read the explanation below 
-    output: [cor_new, pairing_new, paths_new, finish_check]
-    ------------------------------------
-    Ex of input: 
-    P_set = ['a', 'b', 'c', 'd']
-    cor = {'a': 1, 'b': 1, 'c': 1, 'd': 1}
-    pairing = {(1, 0): ['a', 'b'], (0, 1): ['c']}
-    path = [((1, 0), (0, 1))]
-    ------------------------------------
-    Explanation:
-    ((A, B), (C, D)) represents (Aa+Bb, Ca+Db).
-    path = [((1, 0), (0, 1)), ((1, 0), (1, 1)), ((2, 1), (1, 1))] represents (a,b) → (a,a+b) → (2a+b,a+b) where a,b are symbols.
-    """
     div, res1 = divide_check(P_set, cor, pairing, path)
     if div >= 1:
         return res1
@@ -183,15 +148,10 @@ def create_new_path(P_set, cor, pairing, path):
         res2 = assign_prime(P_set, cor, pairing, path)
         return res2
 
+
 def check_unique_in_pair(unique_set, infinite_pair, remove_pair):
-    """
-    unique_set      : set[int]
-    infinite_pair   : list or set of (list/tuple/set/frozenset[int])
-    remove_pair     : 同上
-    """
     for container in (infinite_pair, remove_pair):
         for sig in container:
-            # sig が list/tuple なら set に変換、set/frozenset ならそのまま
             if isinstance(sig, (set, frozenset)):
                 sig_set = sig
             else:
@@ -202,30 +162,37 @@ def check_unique_in_pair(unique_set, infinite_pair, remove_pair):
 
     return False
 
+
 def dfs_explore(P_set, cor, pairing, path,
                 infinite_pair, remove_pair, need_pair, limit):
 
     results = []
-    leaf_count = 0  # ★ 葉のカウント
+    leaf_count = 0
 
-    # stack 要素: (cor, pairing, path, depth, cor_vals_set)
+    best_leaf_depth = 0
+    best_leaf_cor = None
+    best_leaf_pairing = None
+    best_leaf_path = None
+
+    hit_limit = False
+
     init_vals_set = set(cor.values())
     stack = [(cor, pairing, path, 1, init_vals_set)]
 
     while stack:
         cor_cur, pairing_cur, path_cur, depth, cur_vals_set = stack.pop()
 
-        # --- 深さ制限チェック ---
         if depth > limit:
+            hit_limit = True
+
             key = frozenset(cor_cur.values())
             if key not in infinite_pair:
                 infinite_pair.append(key)
 
-                print("=== hit limit / infinite_pair candidate ===")
+                print("=== primitive_set candidate ===")
                 print("  vals      :", sorted(key))
             continue
 
-        # 次の状態を生成
         next_states = create_new_path(P_set, cor_cur, pairing_cur, path_cur)
 
         any_child = False
@@ -242,37 +209,158 @@ def dfs_explore(P_set, cor, pairing, path,
 
                 if all(v > 1 for v in cor_new.values()):
                     if need_pair:
-                        if not any(sub.issubset(new_vals_set) for sub in need_pair):
+                        if not any(set(sub).issubset(new_vals_set) for sub in need_pair):
                             continue
 
             stack.append((cor_new, pairing_new, path_new, depth + 1, new_vals_set))
             any_child = True
 
-        # --- 葉（valid な子がない） ---
         if not any_child:
             leaf_count += 1
 
-            # ★ 100万枚ごとに print
-            if leaf_count % 10000000 == 0:
+            if not hit_limit:
+                if depth > best_leaf_depth:
+                    best_leaf_depth = depth
+                    best_leaf_cor = cor_cur
+                    best_leaf_pairing = pairing_cur
+                    best_leaf_path = path_cur
+
+            if leaf_count % 10_000_000 == 0:
                 print(f"[leaf] reached {leaf_count:,} leaves")
 
-    return results, leaf_count
+    return results, leaf_count, best_leaf_cor, best_leaf_pairing, best_leaf_path, hit_limit
+
+
+
 
 def tree_all_dfs(P_set, infinite_pair, remove_pair, need_pair, limit,
                  print_path=True):
 
     pairing_set = all_first_pairing(P_set)
     first_cor = create_cor(P_set)
-    first_pair = [(first_cor, pairing_set[i], [((1, 0), (0, 1))]) for i in range(len(pairing_set))]
+    first_pair = [
+        (first_cor, pairing_set[i], [((1, 0), (0, 1))])
+        for i in range(len(pairing_set))
+    ]
+
+    total_leaf_count = 0
+
+    best_global_depth = 0
+    best_global_cor = None
+    best_global_pairing = None
+    best_global_path = None
 
     for m, (cor, pairing, path) in enumerate(first_pair):
         print(f"==== Exploring pair {m + 1} ====")
-        # dfs_explore は infinite_pair を更新するためだけに呼ぶ
-        results = dfs_explore(P_set, cor, pairing, path,
-                              infinite_pair, remove_pair, need_pair, limit)
 
-    B = []
-    count_B = 0
-    rep_list = []
+        (results,
+         leaf_count,
+         best_cor_i,
+         best_pairing_i,
+         best_path_i,
+         hit_limit_i) = dfs_explore(
+            P_set, cor, pairing, path,
+            infinite_pair, remove_pair, need_pair, limit
+        )
 
-    return B, count_B, rep_list, infinite_pair
+        total_leaf_count += leaf_count
+
+        if hit_limit_i:
+            continue
+
+        if best_path_i is not None:
+            depth_i = len(best_path_i)
+            if depth_i > best_global_depth:
+                best_global_depth = depth_i
+                best_global_cor = best_cor_i
+                best_global_pairing = best_pairing_i
+                best_global_path = best_path_i
+
+    if print_path and best_global_path is not None:
+        print("==== deepest finite leaf over all dfs (no primitive set) ====")
+        print("depth :", best_global_depth)
+        print("cor   :", best_global_cor)
+        print("pair  :", best_global_pairing)
+        print("path  :", best_global_path)
+
+    return infinite_pair, total_leaf_count, best_global_cor, best_global_pairing, best_global_path
+
+
+def run_tree_search(
+    P_num: int,
+    limit: int,
+    infinite_pair=None,
+    remove_pair=None,
+    need_pair=None,
+    print_path: bool = False,
+    verbose: bool = True,
+):
+    if infinite_pair is None:
+        infinite_pair = []
+    if remove_pair is None:
+        remove_pair = []
+    if need_pair is None:
+        need_pair = []
+
+    P_set = generate_P_set(P_num)
+
+    known_inf = [tuple(sorted(sig)) for sig in infinite_pair]
+
+    t0 = time.perf_counter()
+
+    infinite_pair, total_leaf_count, best_cor, best_pairing, best_path = tree_all_dfs(
+        P_set=P_set,
+        infinite_pair=infinite_pair,
+        remove_pair=remove_pair,
+        need_pair=need_pair,
+        limit=limit,
+        print_path=print_path,
+    )
+
+    t1 = time.perf_counter()
+    elapsed = t1 - t0
+
+    newly_found_infinite_sigs = []
+
+    if infinite_pair:
+        all_sigs = {tuple(sorted(sig)) for sig in infinite_pair}
+        for sig in sorted(all_sigs):
+            if sig not in known_inf:
+                newly_found_infinite_sigs.append(list(sig))
+
+    if verbose:
+        print("\n===== Summary =====")
+        print(f"P_num          = {P_num}")
+        print(f"P_set          = {P_set}")
+        print(f"limit          = {limit}")
+        print(f"total leaf cnt = {total_leaf_count}")
+        print(f"elapsed        = {elapsed:.3f} sec")
+
+        if newly_found_infinite_sigs:
+            print("\n===== Newly found infinite-type signatures (hit limit) =====")
+            for sig in newly_found_infinite_sigs:
+                print(sig)
+
+        if best_path is not None:
+            best_cor_values = sorted(best_cor.values())
+            print("\n===== Deepest finite leaf (did not hit limit) =====")
+            print(f"set  = {best_cor_values}")
+            print(f"depth  = {len(best_path)}")
+            print(f"cor    = {best_cor}")
+            print(f"pair   = {best_pairing}")
+            # print(f"path   = {best_path}")
+
+    return {
+        "P_num": P_num,
+        "P_set": P_set,
+        "limit": limit,
+        "total_leaf_count": total_leaf_count,
+        "elapsed": elapsed,
+        "infinite_pair": infinite_pair,
+        "known_inf": known_inf,
+        "newly_found_infinite_sigs": newly_found_infinite_sigs,
+        "best_cor": best_cor,
+        "best_cor_values": best_cor_values,   # ★ これ追加
+        "best_pairing": best_pairing,
+        "best_path": best_path,
+    }

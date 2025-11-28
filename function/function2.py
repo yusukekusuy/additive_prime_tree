@@ -1,151 +1,163 @@
-import math
-from function.function1 import tree_special
+from math import prod, lcm
+from itertools import permutations
 from function.primitive_sets import p5, p6, p7, p8, p9, p10
-import math
+from function.function1 import divide_check, all_first_pairing
 
-def lcm(x, y):
-    return (x * y) // math.gcd(x, y)
+def create_cor(P_set, need_pair):
+    result = []
+    for perm in permutations(need_pair):
+        cor = {p: v for p, v in zip(P_set, perm)}
+        result.append(cor)
+    return result
 
-def P_div(N, P_set):
-    return [p for p in P_set if N % p == 0]
+from math import prod
 
-def generate_path(a0, b0, P_set, max_depth=1000):
-    N = math.prod(P_set)
-    stack = [(a0, b0, 0, [])]
+
+def assign_prime(P_set, cor, pairing, path):
+
+    result = []
+
+    last_path = path[-1]
+    new_element = tuple(a + b for a, b in zip(last_path[0], last_path[1]))
+
+    if len(path) % 30 == 0 and all(cor[p] > 1 for p in P_set):
+        N_P = prod(cor[p] for p in P_set)
+        new_element = tuple(
+            x if x % N_P == 0 else x % N_P
+            for x in new_element
+        )
+
+    used_letters = {letter for letters in pairing.values() for letter in letters}
+    P_set_rest = [letter for letter in P_set if letter not in used_letters]
+
+    if not P_set_rest:
+        return []
+
+    for i in range(1, len(P_set_rest) + 1):
+        new_pairing = pairing.copy()
+        new_pairing[new_element] = P_set_rest[:i]
+
+        new_path1 = path + [(last_path[0], new_element)]
+        new_path2 = path + [(new_element, last_path[1])]
+
+        result.append((cor, new_pairing, new_path1, True))
+        result.append((cor, new_pairing, new_path2, True))
+
+    return result
+
+
+
+def create_new_path(P_set, cor, pairing, path):
+    div, res1 = divide_check(P_set, cor, pairing, path)
+    if div >= 1:
+        return res1
+    else:
+        res2 = assign_prime(P_set, cor, pairing, path)
+        return res2
+
+    
+
+def dfs_explore(P_set, cor, pairing, path, limit):
+    
+    results = []
+    leaf_count = 0
+
+    best_depth = 0
+    best_cor = None
+    best_pairing = None
+    best_path = None
+    hit_limit = False
+
+    init_vals_set = set(cor.values())
+    stack = [(cor, pairing, path, 1, init_vals_set)]
 
     while stack:
-        a, b, depth, current_path = stack.pop()
-        new_path = current_path + [(a, b)]
+        cor_cur, pairing_cur, path_cur, depth, cur_vals_set = stack.pop()
 
-        if depth == max_depth:
-            div_path = [(x, P_div(x, P_set), y, P_div(y, P_set)) for x, y in new_path]
+        if depth > limit:
+            if not hit_limit:
+                hit_limit = True
+                best_cor = cor_cur
+                best_pairing = pairing_cur
+                best_path = path_cur
+            continue
 
-            if div_path and (not div_path[-1][1] or not div_path[-1][3]):
-                new_path = new_path[:-1]
-                div_path = div_path[:-1]
+        next_states = create_new_path(P_set, cor_cur, pairing_cur, path_cur)
 
-            return new_path, div_path
+        any_child = False
 
-        if P_div(a, P_set) and P_div(b, P_set):
-            a_new = (a + b) % N
-            b_new = (a + b) % N
-            stack.append((a, a_new, depth + 1, new_path))
-            stack.append((b_new, b, depth + 1, new_path))
-
-    return None, None
-
-def detect_tail_cycle(path):
-    seen = {}
-    div_pairs = [(tuple(x[1]), tuple(x[3])) for x in path]
-
-    for i, key in enumerate(div_pairs):
-        if key in seen:
-            j = seen[key]
-            segment_len = i - j
-            segment_old = div_pairs[j:j + segment_len]
-            segment_new = div_pairs[i:i + segment_len]
-            if segment_old == segment_new:
-                return path[i:i + segment_len], segment_len
-        else:
-            seen[key] = i
-
-    return None, 0
-
-def primes_from_cor(cor):
-    P_set = sorted(set(cor.values()))
-    N = math.prod(P_set)
-    return P_set, N
-
-def constraints_from_pairing(cor, pairing):
-    cons = []
-    for (i, j), labels in pairing.items():
-        labels_unique = set(labels)
-        for lbl in labels_unique:
-            p = cor[lbl]
-            cons.append((i, j, p))
-    return cons
-
-def extract_axis_mods(cor, pairing):
-    mx = 1
-    my = 1
-    for (i, j), labels in pairing.items():
-        if (i, j) == (1, 0):
-            for lbl in set(labels):
-                mx = lcm(mx, cor[lbl])
-        elif (i, j) == (0, 1):
-            for lbl in set(labels):
-                my = lcm(my, cor[lbl])
-    return mx, my
-
-def satisfies_all_constraints(x, y, cons):
-    for (i, j, p) in cons:
-        if (i * x + j * y) % p != 0:
-            return False
-    return True
-
-def candidate_pairs(rep):
-    cor, pairing = rep
-    P_set, N = primes_from_cor(cor)
-    cons = constraints_from_pairing(cor, pairing)
-
-    mx, my = extract_axis_mods(cor, pairing)
-    if mx == 0: mx = 1
-    if my == 0: my = 1
-    for x in range(mx, N, mx):
-        for y in range(max(x + 1, my), N, my):
-            if not satisfies_all_constraints(x, y, cons):
+        for cor_new, pairing_new, path_new, valid in next_states:
+            if not valid:
                 continue
-            yield x, y, P_set, N
 
-def is_infinite_via_rep(rep, max_depth=1000):
-    cor, pairing = rep
-    P_set, N = primes_from_cor(cor)
+            new_vals_set = set(cor_new.values())
 
-    for a, b, _Pset_unused, _N_unused in candidate_pairs(rep):
-        if math.gcd(math.gcd(a, b), N) != 1:
-            continue
+            stack.append((cor_new, pairing_new, path_new, depth + 1, new_vals_set))
+            any_child = True
 
-        path_mod, path_div_mod = generate_path(a, b, P_set, max_depth=max_depth)
-        if path_div_mod is None:
-            continue
+        if not any_child:
+            leaf_count += 1
 
-        cycle_part, cycle_len = detect_tail_cycle(path_div_mod)
-        if cycle_part:
-            return True, (a, b)
+            if not hit_limit:
+                if depth > best_depth:
+                    best_depth = depth
+                    best_cor = cor_cur
+                    best_pairing = pairing_cur
+                    best_path = path_cur
 
-    return False, None
+    flag = 1 if hit_limit else 0
 
-def check_loop(need_pair, limit, try_depth=1000):
-    # すべての既知 primitive sets を結合
-    primitive_sets = p5() + p6() + p7() + p8() + p9() + p10()
+    return results, leaf_count, best_cor, best_pairing, best_path, flag
 
-    # ==== 追加処理：need_pair が primitive set の真の上位集合なら中止 ====
-    need_set = set(need_pair)
 
-    for P in primitive_sets:
-        P_set = set(P)
-        if P_set.issubset(need_set) and need_set != P_set:
-            return (
-                f"{need_pair} contains primitive set {sorted(P)}"
+def tree_all_dfs(P_set, need_pair, limit, print_path=True):
+
+    pairing_set = all_first_pairing(P_set)
+
+    first_cor_sets = create_cor(P_set, need_pair)
+
+    best_global_cor = None
+    best_global_pairing = None
+    best_global_path = None
+    best_global_len = 0
+
+    init_idx = 0
+
+    for pairing0 in pairing_set:
+        for cor0 in first_cor_sets:
+            init_idx += 1
+            path0 = [((1, 0), (0, 1))]
+
+            _, leaf_count, best_cor_i, best_pairing_i, best_path_i, flag_i = dfs_explore(
+                P_set,
+                cor0,
+                pairing0,
+                path0,
+                limit,
             )
 
-    # ==== ここから通常の処理 ====
-    exceed_limit, rep, max_depth = tree_special(
-        need_pair, limit, print_steps=None, print_path=False
-    )
+            if flag_i == 1:
+                if print_path and best_path_i is not None:
+                    print(f"==== hit limit at initial pattern {init_idx} ====")
+                    print("cor   :", best_cor_i)
+                    print("pair  :", best_pairing_i)
+                    print("path  :", best_path_i)
 
-    P_str = "{" + ", ".join(map(str, need_pair)) + "}"
+                return best_cor_i, best_pairing_i, best_path_i, 1
 
-    if not exceed_limit:
-        return f"P = {P_str} is of finite type, L(P) = {max_depth}"
+            if best_path_i is not None:
+                cur_len = len(best_path_i)
+                if cur_len > best_global_len:
+                    best_global_len = cur_len
+                    best_global_cor = best_cor_i
+                    best_global_pairing = best_pairing_i
+                    best_global_path = best_path_i
 
-    if rep is None:
-        return f"P = {P_str}: inconclusive (exceed_limit=True but no rep)."
+    if print_path and best_global_path is not None:
+        print("==== longest path without hitting limit ====")
+        print("length:", best_global_len)
+        print("cor   :", best_global_cor)
+        print("pair  :", best_global_pairing)
+        print("path  :", best_global_path)
 
-    infinite_detected, pair = is_infinite_via_rep(rep, max_depth=try_depth)
-    if infinite_detected:
-        a, b = pair
-        return f"P = {P_str} is a primitive set, initial pair ({a}, {b})."
-    else:
-        return f"P = {P_str}: inconclusive (no cycle detected up to depth {try_depth})."
-
+    return best_global_cor, best_global_pairing, best_global_path, 0
