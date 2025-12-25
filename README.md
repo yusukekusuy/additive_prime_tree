@@ -107,7 +107,7 @@ need_pair = []
 ```
 
 the algorithm searches for candidates of primitive sets with $|P| = 6$.
-However, since primitive_sets = [], any set $P$ satisfying $\{2,3,5,7,19\} \subset P$ is of infinite type, and the algorithm may not terminate.
+However, since primitive_sets = [], any set $P$ satisfying {2,3,5,7,19} $\subset P$ is of infinite type, and the algorithm may not terminate.
 Therefore, special care is required in this setting.
 
 ### Code 2 (Check whether P is of finite type or not)
