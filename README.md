@@ -131,7 +131,7 @@ Result:
 P = {2, 3, 5, 7, 19} is a primitive set,
 initial : (2,3273)[(2, 3)] RRRLLRRRLR  cycle_start : (180047,101481)[(7, 3)] LLRRRLR  cycle_end : (3591119,2026347)[(7, 3)] (cycle length = 7)
 ```
-In this case, $P$ is a primitive set. Moreover, $\mathrm{APT}_{P}(2,3273) = \infty$.
+In this case, $P$ is a primitive set. Moreover, $|\mathrm{APT}_{P}(2,3273)| = \infty$.
 Let $(x_0, y_0) = (180047,101481)$ and $(x_7, y_7) = (3591119,2026347)$.
 Then these pairs satisfy the conditions of Proposition 2.2.
 
