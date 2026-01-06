@@ -30,10 +30,10 @@ def lr_sequence(numeric_path, P_set):
     for (a, b), (c, d) in zip(numeric_path, numeric_path[1:]):
         # L 判定: (a,b) -> (a, a+b)
         if (c - a) % N == 0 and (d - (a + b)) % N == 0:
-            steps.append('L')
+            steps.append('R')
         # R 判定: (a,b) -> (a+b, b)
         elif ((c - (a + b)) % N == 0) and (d - b) % N == 0:
-            steps.append('R')
+            steps.append('L')
         else:
             steps.append('?')  # 想定外の遷移
     return ''.join(steps)
@@ -231,10 +231,10 @@ def check_loop(need_pair, limit):
 
         if g1L == 1 or g2L == 1:
             extended_end = (aL, bL)
-            extended_steps = steps + 'L'
+            extended_steps = steps + 'R'
         elif g1R == 1 or g2R == 1:
             extended_end = (aR, bR)
-            extended_steps = steps + 'R'
+            extended_steps = steps + 'L'
 
         if extended_end is not None:
             end_a, end_b = extended_end
