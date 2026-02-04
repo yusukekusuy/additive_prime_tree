@@ -1,3 +1,4 @@
+from function.function1 import generate_P_set
 from function.function2 import tree_all_dfs
 from function.primitive_sets import p5, p6, p7, p8, p9, p10
 import math
@@ -175,26 +176,30 @@ def lift_path_to_numeric(rep, path):
 def check_loop(need_pair, limit):
 
     primitive_sets = p5() + p6() + p7() + p8() + p9() + p10()
-    need_set = set(need_pair)
+    need_set = set(need_pair[0])
+    P_num = len(need_pair[0])
+    P_set = generate_P_set(P_num)
 
     for P in primitive_sets:
-        P_set = set(P)
-        if P_set.issubset(need_set) and need_set != P_set:
+        P1 = set(P)
+        if P1.issubset(need_set) and need_set != P1:
             return f"{need_pair} contains primitive set {sorted(P)}"
 
     best_cor, best_pairing, best_path, flag = tree_all_dfs(
-        P_set=need_pair,
+        P_set=P_set,
+        infinite_pair=[],
+        remove_pair=[],
         need_pair=need_pair,
         limit=limit,
         print_path=False,
     )
 
-    P_str = "{" + ", ".join(map(str, need_pair)) + "}"
+    P_str = "{" + ", ".join(map(str, need_set)) + "}"
 
     if best_cor is not None:
         P_set = sorted(set(best_cor.values()))
     else:
-        P_set = sorted(set(need_pair))
+        P_set = sorted(set(need_set))
 
     # finite-type
     if flag == 0:
