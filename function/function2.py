@@ -127,8 +127,8 @@ def dfs_explore(P_set, cor, pairing, path,
             key = frozenset(cor_cur.values())
             if key not in infinite_pair:
                 infinite_pair.append(key)
-                print("=== primitive_set candidate ===")
-                print("  vals      :", sorted(key))
+                #print("=== primitive_set candidate ===")
+                #print("  vals      :", sorted(key))
 
             # ★ ここで探索を打ち切る（1個見つけたら終わり）
             return results, leaf_count, cor_cur, pairing_cur, path_cur, True
